@@ -1,6 +1,8 @@
 public class PhysicalMemory {
     private int[] memory;
-    private static final int SIZE = 524288;
+    private static final int WORD_SIZE = 4;
+    private static final int TOTAL_WORDS = 524288;
+    private static final int SIZE = PhysicalMemory.TOTAL_WORDS * PhysicalMemory.WORD_SIZE;
 
     public PhysicalMemory() {
         this.memory = new int[PhysicalMemory.SIZE];
@@ -11,7 +13,7 @@ public class PhysicalMemory {
             isValidAddress(address);
         } catch (IllegalAccessError error) {
             System.err.println(error);
-            System.exit(2);
+            System.exit(-1);
         }
 
         this.memory[address] = value;
@@ -22,7 +24,7 @@ public class PhysicalMemory {
             isValidAddress(address);
         } catch (IllegalAccessError error) {
             System.err.println(error);
-            System.exit(3);
+            System.exit(-1);
         }
 
         return this.memory[address];
@@ -37,16 +39,9 @@ public class PhysicalMemory {
     @Override
     public String toString() {
         StringBuffer str = new StringBuffer();
-
-        str.append("************************" + System.lineSeparator());
-        str.append("PHYSICAL MEMORY" + System.lineSeparator());
-        str.append("************************" + System.lineSeparator());
-
         for (int i = 0; i < PhysicalMemory.SIZE; ++i) {
             str.append(i + ": " + this.memory[i] + System.lineSeparator());
         }
-        str.append("************************" + System.lineSeparator());
-
         return str.toString();
     }
 }
