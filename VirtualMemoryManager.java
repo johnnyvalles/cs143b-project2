@@ -25,8 +25,8 @@ public class VirtualMemoryManager {
         int pw = virtualAddress & 0x3FFFF;
 
         if (pw >= segmentSize) {
-            System.err.println("segment access out of bounds.");
-            System.exit(5);
+            // segment access out of bounds
+            return -1;
         }
         
         int ptFrameNumber = this.pm.read(2 * s + 1);
@@ -45,33 +45,37 @@ public class VirtualMemoryManager {
 
         try {
             scanner = new Scanner(initFile);
-            // read first line
+
+            // process segment table tiples
+            // triple[0] -> segment number
+            // triple[1] -> segment size
+            // triple[2] -> segment's PT frame number
             lineScanner = new Scanner(scanner.nextLine());
             for (int i = 0; lineScanner.hasNextInt(); ++i) {
                 triple[i % 3] = lineScanner.nextInt();
 
                 if (i % 3 == 2) {
-                    // System.err.println("(" + triple[0] + ", " + triple[1] + ", " + triple[2] + ")");
                     setSegmentTableEntry(triple);
                 }
             }
-
             lineScanner.close();
             lineScanner = null;
 
-            // read second line
+            // process page table triples
+            // triple[0] -> segment number
+            // triple[1] -> page number
+            // triple[2] -> page's frame number
             lineScanner = new Scanner(scanner.nextLine());
             for (int i = 0; lineScanner.hasNextInt(); ++i) {
                 triple[i % 3] = lineScanner.nextInt();
 
                 if (i % 3 == 2) {
-                    // System.err.println("(" + triple[0] + ", " + triple[1] + ", " + triple[2] + ")");
                     setPageTableEntry(triple);
                 }
             }
-
             lineScanner.close();
             lineScanner = null;
+
         } catch (FileNotFoundException error) {
             System.err.println(error);
             System.exit(-1);
@@ -93,6 +97,27 @@ public class VirtualMemoryManager {
         int pageLocation = ptEntry[2];
         int segmentPTStart = this.pm.read(2 * segment + 1) * VirtualMemoryManager.PAGE_SIZE;
         this.pm.write(segmentPTStart + pageNumber, pageLocation);
+    }
+
+    void translateFromFile(String filePath) {
+        File initFile = new File(filePath);
+        Scanner scanner;
+        int virtualAddress;
+
+        try {
+            scanner = new Scanner(initFile);
+
+            while (scanner.hasNextInt()) {
+                virtualAddress = scanner.nextInt();
+                System.out.print(this.translateVAtoPA(virtualAddress) + " ");
+            }
+
+            scanner.close();
+            scanner = null;
+        } catch (FileNotFoundException error) {
+            System.err.println(error);
+            System.exit(-1);
+        }
     }
 
     @Override
