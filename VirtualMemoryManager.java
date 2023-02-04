@@ -1,3 +1,7 @@
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.util.Scanner;
+
 public class VirtualMemoryManager {
     private PhysicalMemory pm;
     public static final int PAGE_SIZE = 512;
@@ -33,31 +37,66 @@ public class VirtualMemoryManager {
         return pageStart + w;
     }
 
-    public void init() {
-        // triples of form (s, z, f/b)
-        int[] st_init = { 0, 900, 2, 1, 262000, 5, 2, 1100, -100, 3, 1025, 3 };
+    public void init(String initFilePath) {
+        File initFile = new File(initFilePath);
+        Scanner scanner;
+        Scanner lineScanner;
+        int[] triple = new int[3];
 
-        // triples of form (s, p, f/b)
-        int[] pages_init = { 0, 0, 4, 0, 1, 6, 1, 0, 9, 1, 511, 10, 2, 0, 11, 2, 1, 12, 2, 2, -24, 3, 0, 7, 3, 1, -25, 3, 2, 8 };
+        try {
+            scanner = new Scanner(initFile);
+            // read first line
+            lineScanner = new Scanner(scanner.nextLine());
+            for (int i = 0; lineScanner.hasNextInt(); ++i) {
+                triple[i % 3] = lineScanner.nextInt();
 
-        // init segment table entries
-        for (int i = 0; i < st_init.length; i += 3) {
-            int segment = st_init[i];
-            int segmentSize = st_init[i + 1];
-            int ptLocation = st_init[i + 2];
+                if (i % 3 == 2) {
+                    // System.err.println("(" + triple[0] + ", " + triple[1] + ", " + triple[2] + ")");
+                    setSegmentTableEntry(triple);
+                }
+            }
 
-            this.pm.write(2 * segment, segmentSize);
-            this.pm.write(2 * segment + 1, ptLocation);
+            lineScanner.close();
+            lineScanner = null;
+
+            // read second line
+            lineScanner = new Scanner(scanner.nextLine());
+            for (int i = 0; lineScanner.hasNextInt(); ++i) {
+                triple[i % 3] = lineScanner.nextInt();
+
+                if (i % 3 == 2) {
+                    // System.err.println("(" + triple[0] + ", " + triple[1] + ", " + triple[2] + ")");
+                    setPageTableEntry(triple);
+                }
+            }
+
+            lineScanner.close();
+            lineScanner = null;
+        } catch (FileNotFoundException error) {
+            System.err.println(error);
+            System.exit(-1);
         }
+    }
 
-        // init pages
-        for (int i = 0; i < pages_init.length; i += 3) {
-            int segment = pages_init[i];
-            int pageNumber = pages_init[i + 1];
-            int pageLocation = pages_init[i + 2];
+    void setSegmentTableEntry(int[] stEntry) {
+        int segment = stEntry[0];
+        int segmentSize = stEntry[1];
+        int ptLocation = stEntry[2];
 
-            int segmentPTStart = this.pm.read(2 * segment + 1) * VirtualMemoryManager.PAGE_SIZE;
-            this.pm.write(segmentPTStart + pageNumber, pageLocation);
-        }
+        this.pm.write(2 * segment, segmentSize);
+        this.pm.write(2 * segment + 1, ptLocation);
+    }
+
+    void setPageTableEntry(int[] ptEntry) {
+        int segment = ptEntry[0];
+        int pageNumber = ptEntry[1];
+        int pageLocation = ptEntry[2];
+        int segmentPTStart = this.pm.read(2 * segment + 1) * VirtualMemoryManager.PAGE_SIZE;
+        this.pm.write(segmentPTStart + pageNumber, pageLocation);
+    }
+
+    @Override
+    public String toString() {
+        return this.pm.toString();
     }
 }
