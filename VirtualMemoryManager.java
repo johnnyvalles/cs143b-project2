@@ -1,13 +1,16 @@
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.Scanner;
+import java.util.LinkedList;
 
 public class VirtualMemoryManager {
     public static final int PAGE_SIZE = 512;
     private PhysicalMemory pm;
+    private LinkedList<Integer> freeFrames;
     
     public VirtualMemoryManager() {
         this.pm = new PhysicalMemory();
+        this.freeFrames = new LinkedList<Integer>();
     }
 
     public int translateVAtoPA(int virtualAddress) {
@@ -42,6 +45,13 @@ public class VirtualMemoryManager {
         Scanner scanner;
         Scanner lineScanner;
         int[] triple = new int[3];
+        
+        // init list of free frames
+        // frames 0 and 1 are reserved for ST
+        final int FRAME_COUNT = PhysicalMemory.SIZE / VirtualMemoryManager.PAGE_SIZE;
+        for (int frameNumber = 2; frameNumber < FRAME_COUNT; ++frameNumber) {
+            freeFrames.append(frameNumber);
+        }
 
         try {
             scanner = new Scanner(initFile);
