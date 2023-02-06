@@ -3,9 +3,9 @@ import java.io.FileNotFoundException;
 import java.util.Scanner;
 
 public class VirtualMemoryManager {
-    private PhysicalMemory pm;
     public static final int PAGE_SIZE = 512;
-
+    private PhysicalMemory pm;
+    
     public VirtualMemoryManager() {
         this.pm = new PhysicalMemory();
     }
@@ -82,7 +82,7 @@ public class VirtualMemoryManager {
         }
     }
 
-    void setSegmentTableEntry(int[] stEntry) {
+    private void setSegmentTableEntry(int[] stEntry) {
         int segment = stEntry[0];
         int segmentSize = stEntry[1];
         int ptLocation = stEntry[2];
@@ -91,7 +91,7 @@ public class VirtualMemoryManager {
         this.pm.write(2 * segment + 1, ptLocation);
     }
 
-    void setPageTableEntry(int[] ptEntry) {
+    private void setPageTableEntry(int[] ptEntry) {
         int segment = ptEntry[0];
         int pageNumber = ptEntry[1];
         int pageLocation = ptEntry[2];
@@ -99,7 +99,7 @@ public class VirtualMemoryManager {
         this.pm.write(segmentPTStart + pageNumber, pageLocation);
     }
 
-    void translateFromFile(String filePath) {
+    public void translateFromFile(String filePath) {
         File initFile = new File(filePath);
         Scanner scanner;
         int virtualAddress;
