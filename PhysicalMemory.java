@@ -1,8 +1,8 @@
 public class PhysicalMemory {
-    private int[] memory;
+    public int[] memory;
     
     // words (4-bytes) in memory
-    private static final int SIZE = 524288;
+    public static final int SIZE = 524288;
 
     public PhysicalMemory() {
         this.memory = new int[PhysicalMemory.SIZE];
