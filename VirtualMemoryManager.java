@@ -7,24 +7,19 @@ public class VirtualMemoryManager {
     public static final int PAGE_SIZE = 512;
     private PhysicalMemory pm;
     private LinkedList<Integer> freeFrames;
+    private Disk disk;
     
     public VirtualMemoryManager() {
         this.pm = new PhysicalMemory();
         this.freeFrames = new LinkedList<Integer>();
+        this.disk = new Disk();
     }
 
     public int translateVAtoPA(int virtualAddress) {
-        try {
-            this.pm.isValidAddress(virtualAddress);
-        } catch (IllegalAccessError error) {
-            System.err.println(error);
-            System.exit(4);
-        }
-
-        int s = virtualAddress >> 18;
-        int segmentSize = this.pm.read(2 * s);
-        int p = ((virtualAddress >> 9) & 0x01FF);
-        int w = virtualAddress & 0x01FF;
+        int segmentNumber = virtualAddress >> 18;
+        int segmentSize = this.pm.read(2 * segmentNumber);
+        int pageTableEntry = ((virtualAddress >> 9) & 0x01FF);
+        int pageOffset = virtualAddress & 0x01FF;
         int pw = virtualAddress & 0x3FFFF;
 
         if (pw >= segmentSize) {
@@ -32,12 +27,19 @@ public class VirtualMemoryManager {
             return -1;
         }
         
-        int ptFrameNumber = this.pm.read(2 * s + 1);
-        int ptStart = ptFrameNumber * VirtualMemoryManager.PAGE_SIZE;
-        int pageFrameNumber = this.pm.read(ptStart + p);
-        int pageStart = pageFrameNumber * 512;
+        int pageTableFrameNumber = this.pm.read(2 * segmentNumber + 1);
+        int pageTableStart = pageTableFrameNumber * VirtualMemoryManager.PAGE_SIZE;
+        int pageLocation = this.pm.read(pageTableStart + pageTableEntry);
 
-        return pageStart + w;
+        if (pageLocation < 0) {
+            // page fault! page not resident
+            pageLocation = pageFault(-pageLocation);
+            this.pm.write(pageTableStart + pageTableEntry, pageLocation);
+        }
+
+        int pageStart = pageLocation * 512;
+
+        return pageStart + pageOffset;
     }
 
     public void init(String initFilePath) {
@@ -50,7 +52,7 @@ public class VirtualMemoryManager {
         // frames 0 and 1 are reserved for ST
         final int FRAME_COUNT = PhysicalMemory.SIZE / VirtualMemoryManager.PAGE_SIZE;
         for (int frameNumber = 2; frameNumber < FRAME_COUNT; ++frameNumber) {
-            freeFrames.append(frameNumber);
+            freeFrames.add(frameNumber);
         }
 
         try {
@@ -93,20 +95,42 @@ public class VirtualMemoryManager {
     }
 
     private void setSegmentTableEntry(int[] stEntry) {
-        int segment = stEntry[0];
+        int segmentNumber = stEntry[0];
         int segmentSize = stEntry[1];
         int ptLocation = stEntry[2];
 
-        this.pm.write(2 * segment, segmentSize);
-        this.pm.write(2 * segment + 1, ptLocation);
+        if (ptLocation > 0) {
+            this.freeFrames.removeFirstOccurrence(ptLocation); 
+        }
+
+        this.pm.write(2 * segmentNumber, segmentSize);
+        this.pm.write(2 * segmentNumber + 1, ptLocation);
     }
 
     private void setPageTableEntry(int[] ptEntry) {
-        int segment = ptEntry[0];
+        int segmentNumber = ptEntry[0];
         int pageNumber = ptEntry[1];
         int pageLocation = ptEntry[2];
-        int segmentPTStart = this.pm.read(2 * segment + 1) * VirtualMemoryManager.PAGE_SIZE;
-        this.pm.write(segmentPTStart + pageNumber, pageLocation);
+        int pageTableLocation = this.pm.read(2 * segmentNumber + 1);
+
+        if (pageTableLocation < 0) {
+            // page fault! page table not resident
+            pageTableLocation = this.pageFault(-pageTableLocation);
+            this.pm.write(2 * segmentNumber + 1, pageTableLocation);
+        }
+
+        if (pageLocation > 0) {
+            this.freeFrames.removeFirstOccurrence(pageLocation);
+        }
+
+        this.pm.write(pageTableLocation * VirtualMemoryManager.PAGE_SIZE + pageNumber, pageLocation);
+    }
+
+    private int pageFault(int blockNumber) {
+        int frame = this.freeFrames.removeFirst();
+        int frameStart = frame * 512;
+        this.disk.readBlock(blockNumber, frameStart, this.pm.memory);
+        return frame;
     }
 
     public void translateFromFile(String filePath) {
@@ -129,6 +153,7 @@ public class VirtualMemoryManager {
             System.exit(-1);
         }
     }
+
 
     @Override
     public String toString() {
