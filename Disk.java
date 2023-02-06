@@ -1,7 +1,7 @@
 public class Disk {
     public static final int TOTAL_BLOCKS = 1024;
     public static final int BLOCK_SIZE = 512;
-    private int[][] disk;
+    public int[][] disk;
 
     public Disk() {
         this.disk = new int[Disk.TOTAL_BLOCKS][Disk.BLOCK_SIZE];
