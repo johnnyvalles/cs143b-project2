@@ -27,19 +27,23 @@ public class VirtualMemoryManager {
             return -1;
         }
         
-        int pageTableFrameNumber = this.pm.read(2 * segmentNumber + 1);
-        int pageTableStart = pageTableFrameNumber * VirtualMemoryManager.PAGE_SIZE;
-        int pageLocation = this.pm.read(pageTableStart + pageTableEntry);
+        int pageTableLocation = this.pm.memory[2 * segmentNumber + 1];
+        if (pageTableLocation < 0) {
+            // page fault! segment's page table is not resident
+            // need to allocate frame and read block
+            pageTableLocation = pageFault(-pageTableLocation);
+            this.pm.memory[2 * segmentNumber + 1] = pageTableLocation;
+            // segment's page table now resident
+        }
 
+        int pageLocation = this.pm.memory[pageTableLocation * VirtualMemoryManager.PAGE_SIZE + pageTableEntry];
         if (pageLocation < 0) {
             // page fault! page not resident
             pageLocation = pageFault(-pageLocation);
-            this.pm.write(pageTableStart + pageTableEntry, pageLocation);
+            this.pm.memory[pageTableLocation * VirtualMemoryManager.PAGE_SIZE + pageTableEntry] = pageLocation;
         }
 
-        int pageStart = pageLocation * 512;
-
-        return pageStart + pageOffset;
+        return pageLocation * VirtualMemoryManager.PAGE_SIZE + pageOffset;
     }
 
     public void init(String initFilePath) {
@@ -97,14 +101,14 @@ public class VirtualMemoryManager {
     private void setSegmentTableEntry(int[] stEntry) {
         int segmentNumber = stEntry[0];
         int segmentSize = stEntry[1];
-        int ptLocation = stEntry[2];
+        int pageTableLocation = stEntry[2];
 
-        if (ptLocation > 0) {
-            this.freeFrames.removeFirstOccurrence(ptLocation); 
+        if (pageTableLocation > 0) {
+            this.freeFrames.removeFirstOccurrence(pageTableLocation);
         }
 
         this.pm.write(2 * segmentNumber, segmentSize);
-        this.pm.write(2 * segmentNumber + 1, ptLocation);
+        this.pm.write(2 * segmentNumber + 1, pageTableLocation);
     }
 
     private void setPageTableEntry(int[] ptEntry) {
@@ -114,22 +118,27 @@ public class VirtualMemoryManager {
         int pageTableLocation = this.pm.read(2 * segmentNumber + 1);
 
         if (pageTableLocation < 0) {
-            // page fault! page table not resident
-            pageTableLocation = this.pageFault(-pageTableLocation);
+            // segment's page table is not resident
+            // segment's page table is found on disk at block |pageTableLocation|
+            this.disk.disk[-pageTableLocation][pageNumber] = pageLocation;
             this.pm.write(2 * segmentNumber + 1, pageTableLocation);
+        } else {
+            // segment's page table is resident in memory
+            // segment's page table is found at frame number pageTableLocation
+            this.freeFrames.removeFirstOccurrence(pageTableLocation);
+            this.pm.memory[pageTableLocation * 512 + pageNumber] = pageLocation;
         }
 
         if (pageLocation > 0) {
             this.freeFrames.removeFirstOccurrence(pageLocation);
         }
-
-        this.pm.write(pageTableLocation * VirtualMemoryManager.PAGE_SIZE + pageNumber, pageLocation);
     }
 
     private int pageFault(int blockNumber) {
+        // allocate a physical memory frame
         int frame = this.freeFrames.removeFirst();
-        int frameStart = frame * 512;
-        this.disk.readBlock(blockNumber, frameStart, this.pm.memory);
+        // read block into physical memory at frame & return frame
+        this.disk.readBlock(blockNumber, frame * VirtualMemoryManager.PAGE_SIZE, this.pm.memory);
         return frame;
     }
 
@@ -154,6 +163,18 @@ public class VirtualMemoryManager {
         }
     }
 
+    public String debugSegmentTable() {
+        String str = "";
+        str += "**********************" + System.lineSeparator();
+        str += "Segment Table" + System.lineSeparator();
+        str += "**********************" + System.lineSeparator();
+        for (int i = 0; i < VirtualMemoryManager.PAGE_SIZE; ++i) {
+            str += i + ": " + this.pm.read(2 * i) + ", " + this.pm.read(2 * i + 1);
+            str += System.lineSeparator();
+        }
+
+        return str;
+    }
 
     @Override
     public String toString() {
