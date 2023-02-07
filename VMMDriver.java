@@ -1,6 +1,6 @@
 import java.util.Scanner;
 
-public class Main {
+public class VMMDriver {
     public static void main(String[] args) {
         VirtualMemoryManager vmm = new VirtualMemoryManager();
         Scanner scanner;
