@@ -2,30 +2,45 @@ import java.util.Scanner;
 
 public class VMMDriver {
     public static void main(String[] args) {
+        if (args.length == 2 && args[0].equals("-i")) {
+            VMMDriver.VMMInteractiveMode(args[1]);
+        } else if (args.length == 2) {
+            VMMDriver.VMMGradingMode(args[0], args[1]);
+        } else {
+            System.err.println("usage: java VMMDriver /path/to/init-file.txt /path/to/input-file.txt");
+            System.err.println("usage: java VMMDriver -i /path/to/init-file.txt");
+            System.exit(1);
+        }
+    }
+    
+    private static void VMMGradingMode(String initFileName, String inputFileName) {
         VirtualMemoryManager vmm = new VirtualMemoryManager();
-        Scanner scanner;
-
-        if (args.length < 1 || args.length > 2) {
-            System.err.println("You must provide an init file & optional file containing virtual addresses.");
-            System.exit(-1);
-        }
-
-        if (args.length == 2) {
-            vmm.init(args[0]);
-            vmm.translateFromFile(args[1]);
-        }
-
-        if (args.length == 1) {
-            vmm.init(args[0]);
-            scanner = new Scanner(System.in);
-            int virtualAddress;
-            while (scanner.hasNextInt()) {
-                virtualAddress = scanner.nextInt();
-                System.out.println("**********************************************");
-                System.out.println("Virtual Address:  " + virtualAddress);
-                System.out.println("Physical Address: " + vmm.translateVAtoPA(virtualAddress));
-                System.out.println("**********************************************");
+        vmm.init(initFileName);
+        vmm.translateFromFile(inputFileName);
+    }
+    
+    private static void VMMInteractiveMode(String initFileName) {
+        VirtualMemoryManager vmm = new VirtualMemoryManager();
+        Scanner in = new Scanner(System.in);
+        String shellPrompt = "[vmm-driver]$ ";
+        String line;
+        String[] tokens;
+        
+        vmm.init(initFileName);
+        
+        System.out.print(shellPrompt);
+        while (in.hasNextLine()) {
+            line = in.nextLine();
+            tokens = line.split("\\s+");
+            
+            if (tokens.length > 0) {
+                if (tokens.length == 2 && tokens[0].equals("va")) {
+                    int virtualAddress = Integer.parseInt(tokens[1]);
+                    System.out.println("va " + virtualAddress);
+                }
             }
+            
+            System.out.print(shellPrompt);
         }
     }
 }
