@@ -169,10 +169,15 @@ public class VirtualMemoryManager {
         str += "Segment Table" + System.lineSeparator();
         str += "**********************" + System.lineSeparator();
         for (int i = 0; i < VirtualMemoryManager.PAGE_SIZE; ++i) {
-            str += i + ": " + this.pm.read(2 * i) + ", " + this.pm.read(2 * i + 1);
+            str += "[" + i + "]: (" + this.pm.memory[2 * i] + ", " + this.pm.memory[2 * i + 1] + ")";
             str += System.lineSeparator();
         }
-
+        return str;
+    }
+    
+    public String debugSegmentTableEntry(int entry) {
+        String str = "";
+        str += "ST[" + entry + "]: (" + this.pm.memory[2 * entry] + ", " + this.pm.memory[2 * entry + 1] + ")";
         return str;
     }
 
