@@ -42,5 +42,7 @@ public class VMMDriver {
             
             System.out.print(shellPrompt);
         }
+
+        in.close();
     }
 }
