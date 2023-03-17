@@ -22,12 +22,12 @@ public class PhysicalMemory {
     public int read(int address) {
         try {
             isValidAddress(address);
+            return this.memory[address];
         } catch (IllegalAccessError error) {
-            System.err.println(error);
-            System.exit(-1);
-        }
-
-        return this.memory[address];
+            // System.err.println(error);
+            // System.exit(-1);
+            throw error;
+        }        
     }
 
     public void isValidAddress(int address) {

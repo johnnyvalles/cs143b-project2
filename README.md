@@ -8,6 +8,12 @@ The disk is organized as a two-dimensional array of integers corresponding to 51
 
 Since the system employs demand paging, pages and PTs may not be resident in main memory when an address translation begins. In such cases, a page fault is raised, the corresponding page or PT is read from disk into main memory, the ST or PT is updated to reflect the now resident data, and the address translation continues (assuming a valid VA).
 
+# The Virtual Memory Manager Shell
+| Command     | Description |
+| ----------- | ----------- |
+| `va <va>`    | translate virtual address `va` to physical address.|
+
+
 
 # Building & Running the Virtual Memory System
 Running the manager using the instructor provided input files:

@@ -35,8 +35,16 @@ public class VMMDriver {
             
             if (tokens.length > 0) {
                 if (tokens.length == 2 && tokens[0].equals("va")) {
-                    int virtualAddress = Integer.parseInt(tokens[1]);
-                    System.out.println("va " + virtualAddress);
+                    int virtualAddress;
+                    try {
+                        virtualAddress = Integer.parseInt(tokens[1]);
+                        System.out.println("\tVirtual Address: " + virtualAddress);
+                        System.out.println("\tPhysical Address: " + vmm.translateVAtoPA(virtualAddress));
+                    } catch (NumberFormatException e) {
+                        System.out.println("\tVirtual address argument provided is not valid: " + e);
+                    } catch (IllegalAccessError e) {
+                        System.out.println("\t" + e);
+                    }
                 }
             }
             
